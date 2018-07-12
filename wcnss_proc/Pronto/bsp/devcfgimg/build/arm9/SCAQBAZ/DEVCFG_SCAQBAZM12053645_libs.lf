@@ -1,0 +1,23 @@
+#============================================================================
+#  Name:                                                                     
+#    DEVCFG_SCAQBAZM12053645_libs.lf 
+#
+#  Description:                                                              
+#    None 
+#                                                                            
+# Copyright (c) 2015 by QUALCOMM, Incorporated.  All Rights Reserved.        
+#============================================================================
+#                                                                            
+# *** AUTO GENERATED FILE - DO NOT EDIT                                      
+#                                                                            
+# GENERATED: Wed Mar 11 07:55:40 2015 
+#============================================================================
+../../../core/buses/icb/build/devcfg_img/arm9/SCAQBAZ/icb_cfg_lib.lib
+../../../core/dal/config/build/devcfg_img/arm9/SCAQBAZ/DALConfig.lib
+../../../core/debugtrace/hwevent/dal/build/devcfg_img/arm9/SCAQBAZ/hwevent_cfg.lib
+../../../core/debugtrace/tfunnel/dal/build/devcfg_img/arm9/SCAQBAZ/tfunnel_cfg.lib
+../../../core/power/spm/build/devcfg_img/arm9/SCAQBAZ/SPMCfg.lib
+../../../core/systemdrivers/GPIOInt/build/devcfg_img/arm9/SCAQBAZ/GPIOIntCfg.lib
+../../../core/systemdrivers/InterruptController/build/devcfg_img/arm9/SCAQBAZ/DALInterruptControllerCfg.lib
+../../../core/systemdrivers/clock/build/devcfg_img/arm9/SCAQBAZ/Clock_msm8974_bsp.lib
+../../../core/systemdrivers/pmic/config/build/devcfg_img/arm9/SCAQBAZ/pmic_config_wcnss.lib

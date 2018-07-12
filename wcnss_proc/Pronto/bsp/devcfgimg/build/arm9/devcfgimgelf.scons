@@ -1,0 +1,330 @@
+#===============================================================================
+#
+# CoreBSP Scorpion build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/wcnss/pr/rel/2.1/Pronto/bsp/devcfgimg/build/arm9/devcfgimgelf.scons#4 $
+#  $DateTime: 2013/09/10 16:09:31 $
+#  $Author: coresvc $
+#  $Change: 4408426 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/08/2013 yko     added gensecimage support for 8x10 only
+# 08/19/2013 yko     removed gensecimage support
+#
+#===============================================================================
+import os
+import sys
+
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = [
+   'devcfg_img', 'coreimg', 'pronto', 'bt', 'fm', 'wlan', 'pronto_r33d', 'pronto_r33d_bt', 'pronto_r33d_wlan', 'pronto_r33d_fm', 'coreimg_r33d'
+]
+   
+# init environment variables
+env.InitImageVars(
+   alias_list = aliases,         # aliases
+   proc='arm9',                 # proc
+   config='wcn',            # config type, proc_name
+   plat='rex',
+   target='DEVCFGIMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['DAL_DEVCFG_IMG', 'QDSS_EN_IMG'],
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+   #'${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder',
+   '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/gendevcfghdr.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/elfmergerutil.py',
+   '${BUILD_ROOT}/tools/build/scons/gensecimage/gensecimage_builder.py'
+   ]
+   )
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Setting up export paths for access to elfparserutil.py
+#------------------------------------------------------------------------------
+corebsp_scripts_path = env.RealPath('${BUILD_ROOT}/core/bsp/build/scripts/')
+sys.path.append(corebsp_scripts_path)
+
+#------------------------------------------------------------------------------
+# Init defualt values this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(USES_DEVCFG = 'yes')
+
+# replace AMSS CUST file, add ours to #undef unwanted features
+#env.Replace(AMSS_CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+#env.Replace(CUST_H = 'custcoreimg_m.h')
+#env.Replace(CUST_H = 'cust_rivaimg.h')
+
+# add define for original AMSS custfile
+env.Append(CPPDEFINES = [
+   #"AMSS_CUST_H=\\\"${AMSS_CUST_H}\\\"",
+   "CUST_H=\\\"${CUST_H}\\\"",
+   "BUILD_TARGET=\\\"${BUILD_TARGET}\\\"",
+   "BUILD_VER=\\\"${BUILD_VER}\\\"",
+   "BUILD_ASIC=\\\"${BUILD_ASIC}\\\"",
+   "FEATURE_COREIMG",
+   "RIVA_COREIMAGE",
+   "RIVA_IMAGE",
+   "WCN_IMAGE",
+   "IMAGE_WCN_PROC",
+   "DAL_REX_NATIVE_PLATFORM",
+])
+
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ["${BUILD_ROOT}/tools/build/scons/scripts"])
+
+#---------------------------------------------------------------------------
+# Load in the compiler options for the devcfg image
+#---------------------------------------------------------------------------
+# This ensures that there is no .bss section created in the devcfg image (int max = 65535)
+env.Append(CFLAGS = "--bss_threshold=65535 ")
+
+#---------------------------------------------------------------------------
+# Definitions
+#---------------------------------------------------------------------------
+cmdline_targets = map(str, COMMAND_LINE_TARGETS)
+if ('coreimg' == cmdline_targets[0]) or ('coreimg_r33d' == cmdline_targets[0]):
+    primary_elf = env.RealPath('${BUILD_MS_ROOT}/Pronto_core_NODEVCFG.elf')
+    merged_elf_name = env.RealPath('${BUILD_MS_ROOT}/Pronto_core.elf')
+elif ('pronto' == cmdline_targets[0]) or ('pronto_r33d' == cmdline_targets[0]):
+	if 'USES_PRONTO_MEMORY_REDUCED' in env:
+		primary_elf = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO_NODEVCFG_MR.elf')
+		merged_elf_name = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO_MR.elf')
+	
+	else:
+		primary_elf = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO_NODEVCFG.elf')
+		merged_elf_name = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO.elf')
+elif ('pronto_r33d_bt' == cmdline_targets[0]) or ('bt' == cmdline_targets[0]):
+    primary_elf = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO_BT_NODEVCFG.elf')
+    merged_elf_name = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_BT_PRONTO.elf')
+elif ('pronto_r33d_wlan' == cmdline_targets[0]) or ('wlan' == cmdline_targets[0]):
+    primary_elf = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO_WLAN_NODEVCFG.elf')
+    merged_elf_name = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_WLAN_PRONTO.elf')	
+elif ('pronto_r33d_fm' == cmdline_targets[0]) or ('fm' == cmdline_targets[0]):
+    primary_elf = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_PRONTO_FM_NODEVCFG.elf')
+    merged_elf_name = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_FM_PRONTO.elf')
+else:
+    env.PrintError("-------------------------------------------------------------------------------")
+    env.PrintError("Error: Primary elf not set.")
+    env.PrintError("-------------------------------------------------------------------------------")
+    raise RuntimeError, "Error: Primary elf not set"
+
+devcfg_header = env.RealPath('${BUILD_MS_ROOT}/devcfg_def.h')
+devcfg_elf_name = env.RealPath('${BUILD_MS_ROOT}/${MSM_ID}_DEVCFG_${BUILD_ID}${BUILD_VER}.elf')
+devcfg_scl_name = env.RealPath('${BUILD_MS_ROOT}/DEVCFG_${BUILD_ID}${BUILD_VER}.scl')
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+devcfgimg_libs = []
+devcfgimg_objs = []
+
+devcfg_units = []
+core_path = env.RealPath('${BUILD_ROOT}/core')
+if env.PathExists(core_path):
+   au_items = env.LoadAreaSoftwareUnits('core')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+pmic_path = env.RealPath('${BUILD_ROOT}/pmic')
+if env.PathExists(pmic_path):
+   au_items = env.LoadAreaSoftwareUnits('pmic')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+rivaservices_path = env.RealPath('${BUILD_ROOT}/rivaservices')
+if env.PathExists(rivaservices_path):
+   au_items = env.LoadAreaSoftwareUnits('rivaservices')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+products_path = env.RealPath('${BUILD_ROOT}/products')
+if env.PathExists(products_path):
+   au_items = env.LoadAreaSoftwareUnits('products')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+bt_path = env.RealPath('${BUILD_ROOT}/bt')
+if env.PathExists(bt_path):
+   au_items = env.LoadAreaSoftwareUnits('bt')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+fm_path = env.RealPath('${BUILD_ROOT}/fm')
+if env.PathExists(fm_path):
+   au_items = env.LoadAreaSoftwareUnits('fm')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+wlan_path = env.RealPath('${BUILD_ROOT}/wlan')
+if env.PathExists(wlan_path):
+   au_items = env.LoadAreaSoftwareUnits('wlan')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+devcfg_units = [devcfgimg_libs, devcfgimg_objs]
+
+#------------------------------------------------------------------------------
+# Rule for compiling devcfg_main.c
+#------------------------------------------------------------------------------
+# filter is not define or filter is current target files only, ok to build misc files
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   DEVCFGIMG_SRC = "${BUILD_ROOT}/Pronto/bsp/devcfgimg/src"
+   env.VariantDir("${BUILDPATH}", DEVCFGIMG_SRC, duplicate=0)
+   env.RequirePublicApi(['DAL'])
+   env.RequireRestrictedApi(['DAL'])
+   DEVCFGIMG_SOURCES = [
+      '${BUILDPATH}/devcfg_main.c'
+   ]
+   devcfg_main_obj = env.Object(DEVCFGIMG_SOURCES)
+   devcfgimg_objs.extend(devcfg_main_obj)
+   env.Depends(devcfg_main_obj,primary_elf)
+   devcfg_main_lib = env.Library('${BUILDPATH}/devcfg_main_lib', devcfg_main_obj)
+   env.AddLibsToImage('DAL_DEVCFG_IMG', devcfg_main_lib)
+   devcfg_units += devcfg_main_obj
+
+   #=========================================================================
+   # Beging building DEVCFG Image
+   #-------------------------------------------------------------------------
+   devcfg_scl_hdr_file = env.GenerateDevCfgHdrs("${BUILD_MS_ROOT}/devcfg_def.h",
+                         primary_elf, SECTION_NAME='DEVCFG_DATA')
+   target_scl = env.SclBuilder('${SHORT_BUILDPATH}/DEVCFG_${BUILD_ID}${BUILD_VER}.scl', [
+      "${BUILD_MS_ROOT}/devconfig_data.scl",
+      devcfg_scl_hdr_file
+   ])
+   env.Depends(target_scl, primary_elf)
+   devcfg_units.extend(target_scl)
+   install_devcfg_scl = env.InstallAs(devcfg_scl_name, target_scl)
+
+# the following steps can only be performed if there is no filters in effect
+if 'IMAGE_BUILD_LINK' in env:
+   libs_path = env['INSTALL_LIBPATH']
+   devcfg_elf = env.AddProgram('${SHORT_BUILDPATH}/DEVCFG_${BUILD_ID}${BUILD_VER}', source=[devcfgimg_objs], LIBS=[devcfgimg_libs], LIBPATH=libs_path)
+   env.Depends(devcfg_elf, target_scl)
+   env.Depends(devcfg_elf, primary_elf)
+   install_devcfg_elf = env.InstallAs(devcfg_elf_name, devcfg_elf)
+
+
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Install ELF, reloc files
+   #-------------------------------------------------------------------------
+   # Merge elfs here
+
+   elfmergeout = env.ElfMergerUtilBuilder('${SHORT_BUILDPATH}/M${TARGET_FAMILY}${BUILD_ID}${BUILD_VER}.elf', [primary_elf, devcfg_elf_name],
+                     PRIMARY_SECTION_NAME="DEVCFG_DATA", SECONDARY_SECTION_NAME="DEVCFG_DATA")
+                     
+
+
+   install_merged_elf = env.InstallAs(merged_elf_name, elfmergeout)
+
+   #-------------------------------------------------------------------------
+   # Build env mbn files
+   #-------------------------------------------------------------------------
+   target_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', elfmergeout, IMAGE_TYPE="wcnss",
+      FLASH_TYPE=env['TARGET_FLASH_TYPE'], ENABLE_ENCRYPT=True)
+
+   target_mbn_copy = env.Install("${BUILD_ROOT}/build/ms/bin/${MSM_ID}/", target_mbn)
+
+   #----------------------------------------------------------------------
+   # Build relocated env mbn files
+   #----------------------------------------------------------------------      
+
+   env.Append(alignvalue=[0x100000])
+   elfmergeout_reloc = env.ModifyRelocatableFlagsBuilder( '${SHORT_BUILDPATH}/M${TARGET_FAMILY}${BUILD_ID}${BUILD_VER}_reloc.elf', elfmergeout )
+   
+   target_mbn_reloc = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}_reloc', elfmergeout_reloc, IMAGE_TYPE="wcnss", 
+      ENABLE_RELOCATABLE=True, FLASH_TYPE=env['TARGET_FLASH_TYPE'], ENABLE_ENCRYPT=True)
+
+   target_mbn_copy_reloc = env.Install("${BUILD_ROOT}/build/ms/bin/${MSM_ID}/reloc/", target_mbn_reloc)
+   
+   #-------------------------------------------------------------------------
+   # Run PIL Splitter Tool
+   #-------------------------------------------------------------------------
+   split_files = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/PIL_IMAGES/${MSM_ID}_SPLITBINS_${QC_SHORT_BUILDPATH}/wcnss.mdt', target_mbn)
+   split_files_reloc = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/PIL_IMAGES/${MSM_ID}_SPLITBINS_${QC_SHORT_BUILDPATH}_reloc/wcnss.mdt', target_mbn_reloc)
+
+   #---------------------------------------------------------------------------- 
+   # Gensecimage signing  
+   #----------------------------------------------------------------------------  
+   #gensecimage_msmid is defined in modem_proc/build/msm_jtag_mapping.txt 
+   if env['MSM_ID'] in ['8x10']: 
+      gensecimage_msmid = ['8610'] 
+   elif env['MSM_ID'] in ['8x26']: 
+      gensecimage_msmid = ['8626']   
+   else: 
+      gensecimage_msmid = env.subst('${MSM_ID}')   
+
+   # gensecimage is turned on when USES_GENSECIMAGE is defined and .  
+   # the legacy USES_SECBOOT and USES_ENCRYPT_MBN are not defined                                   
+   # Use gensecimage_jtagid = ['0x12345678'] if the gensecimage_msmid is not supported 
+
+   # target_base_dir can be set to where the unsigned image is generated 
+   # For example, if unsigned image is in ${SHORT_BUILDPATH}, target_base_dir = '${SHORT_BUILDPATH}/signed/' 
+   signed_mbn = env.GensecimageMbnBuilder( 
+                  target_base_dir = '${SHORT_BUILDPATH}/signed/', 
+                  source=target_mbn,                    
+                  gensecimage_section = "wcnss",  
+                  gensecimage_msmid = gensecimage_msmid 
+                  )                              
+                       
+      
+   # Installation 
+   install_signed_mbn = env.GensecimageInstall( 
+                      install_base_dir = '${MBN_ROOT}/signed/', 
+                      install_sub_dir = gensecimage_msmid, 
+                      install_file_name = 'wcnss.mbn', 
+                      gensecimage_builder_output = signed_mbn)   
+
+   #=========================================================================
+   # Define targets needed DEVCFGIMG
+   #=========================================================================
+   devcfg_units += [
+      install_devcfg_elf,
+      elfmergeout,
+      install_merged_elf,
+      target_mbn,
+      target_mbn_copy,
+      split_files,
+      split_files_reloc,
+      target_mbn_copy_reloc
+   ]
+
+   if signed_mbn is not None:
+      devcfg_units += install_signed_mbn
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(devcfg_units)

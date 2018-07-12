@@ -1,0 +1,16 @@
+#============================================================================
+#  Name:                                                                     
+#    DEVCFG_SCAQBAZM12053645_objs.lf 
+#
+#  Description:                                                              
+#    None 
+#                                                                            
+# Copyright (c) 2015 by QUALCOMM, Incorporated.  All Rights Reserved.        
+#============================================================================
+#                                                                            
+# *** AUTO GENERATED FILE - DO NOT EDIT                                      
+#                                                                            
+# GENERATED: Wed Mar 11 07:55:54 2015 
+#============================================================================
+../../../core/dal/config/build/devcfg_img/arm9/SCAQBAZ/devcfg_data.o
+../devcfgimg/build/arm9/devcfg_img/arm9/SCAQBAZ/devcfg_main.o
